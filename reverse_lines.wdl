@@ -14,7 +14,7 @@ task reverse_line {
   }
   
   runtime {
-    docker: "ubuntu:latest"
+    docker: "ubuntu:25.10"
   }
 }
 
