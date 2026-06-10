@@ -3,7 +3,7 @@
 # directory/prefix argument AlphaFold needs.
 #
 # IMPORTANT: keep these expressions in sync with the command block in
-# alphafold/alphafold.wdl (Task 3). They must produce identical results.
+# alphafold/alphafold.wdl (task run_alphafold). They must produce identical results.
 
 BFD_PREFIX="bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt"
 UNIREF30_PREFIX="UniRef30_2021_03"

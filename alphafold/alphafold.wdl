@@ -102,6 +102,20 @@ task run_alphafold {
   command <<<
     set -euo pipefail
 
+    # --- Validate enum inputs up front (fail before mounting the reference disk) ---
+    case "~{model_preset}" in
+      monomer|monomer_ptm|monomer_casp14|multimer) ;;
+      *) echo "ERROR: invalid model_preset '~{model_preset}' (expected monomer|monomer_ptm|monomer_casp14|multimer)" >&2; exit 1 ;;
+    esac
+    case "~{db_preset}" in
+      full_dbs|reduced_dbs) ;;
+      *) echo "ERROR: invalid db_preset '~{db_preset}' (expected full_dbs|reduced_dbs)" >&2; exit 1 ;;
+    esac
+    case "~{models_to_relax}" in
+      all|best|none) ;;
+      *) echo "ERROR: invalid models_to_relax '~{models_to_relax}' (expected all|best|none)" >&2; exit 1 ;;
+    esac
+
     # --- Derive on-disk database paths from anchor file locations ---
     # Mirrors alphafold/tests/db_paths.lib.sh.
     BFD_DB="$(dirname '~{bfd_anchor}')/~{bfd_prefix}"
