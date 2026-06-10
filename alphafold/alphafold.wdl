@@ -141,12 +141,13 @@ task run_alphafold {
       --model_preset='~{model_preset}' \
       --db_preset='~{db_preset}' \
       --models_to_relax='~{models_to_relax}' \
-      --use_gpu_relax=~{if use_gpu_relax then "true" else "false"} \
+      --use_gpu_relax='~{if use_gpu_relax then "true" else "false"}' \
       "${DB_FLAGS[@]}"
 
     # --- Collect outputs ---
     # AlphaFold writes results under ${OUTPUT_DIR}/<fasta basename>/.
     PRED_DIR="$(find "${OUTPUT_DIR}" -mindepth 1 -maxdepth 1 -type d -print -quit)"
+    [[ -n "${PRED_DIR}" ]] || { echo "ERROR: AlphaFold produced no output directory under ${OUTPUT_DIR}" >&2; exit 1; }
     cp "${PRED_DIR}/ranked_0.pdb" best_model.pdb
     cp "${PRED_DIR}/ranking_debug.json" ranking_debug.json
     cp "${PRED_DIR}/timings.json" timings.json
@@ -168,6 +169,7 @@ task run_alphafold {
     gpu: true
     gpuType: gpu_type
     gpuCount: gpu_count
+    # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
     bootDiskSizeGb: 50
     zones: "us-central1-a us-central1-b us-central1-c us-central1-f"
