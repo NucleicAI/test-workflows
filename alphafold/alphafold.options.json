@@ -1,0 +1,5 @@
+{
+  "use_reference_disks": true,
+  "read_from_cache": true,
+  "write_to_cache": true
+}
