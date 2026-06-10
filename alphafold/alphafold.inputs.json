@@ -1,0 +1,26 @@
+{
+  "alphafold.fasta": "gs://<BUCKET>/<PREFIX>/examples/query.fasta",
+  "alphafold.max_template_date": "2022-01-01",
+  "alphafold.model_preset": "monomer",
+  "alphafold.db_preset": "full_dbs",
+  "alphafold.models_to_relax": "best",
+  "alphafold.use_gpu_relax": true,
+
+  "alphafold.docker_image": "us-docker.pkg.dev/<PROJECT>/<REPO>/alphafold:2.3.2",
+  "alphafold.gpu_type": "nvidia-tesla-v100",
+  "alphafold.gpu_count": 1,
+  "alphafold.cpu": 8,
+  "alphafold.memory_gb": 64,
+  "alphafold.scratch_disk_gb": 100,
+
+  "alphafold.uniref90_database": "gs://<BUCKET>/<PREFIX>/uniref90/uniref90.fasta",
+  "alphafold.mgnify_database": "gs://<BUCKET>/<PREFIX>/mgnify/mgy_clusters_2022_05.fa",
+  "alphafold.bfd_anchor": "gs://<BUCKET>/<PREFIX>/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt_hhm.ffindex",
+  "alphafold.uniref30_anchor": "gs://<BUCKET>/<PREFIX>/uniref30/UniRef30_2021_03_hhm.ffindex",
+  "alphafold.small_bfd_database": "gs://<BUCKET>/<PREFIX>/small_bfd/bfd-first_non_consensus_sequences.fasta",
+  "alphafold.pdb70_anchor": "gs://<BUCKET>/<PREFIX>/pdb70/pdb70_hhm.ffindex",
+  "alphafold.pdb_seqres_database": "gs://<BUCKET>/<PREFIX>/pdb_seqres/pdb_seqres.txt",
+  "alphafold.uniprot_database": "gs://<BUCKET>/<PREFIX>/uniprot/uniprot.fasta",
+  "alphafold.obsolete_pdbs": "gs://<BUCKET>/<PREFIX>/pdb_mmcif/obsolete.dat",
+  "alphafold.params_anchor": "gs://<BUCKET>/<PREFIX>/params/params_model_1.npz"
+}
