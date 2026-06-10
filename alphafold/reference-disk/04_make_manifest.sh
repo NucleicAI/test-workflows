@@ -17,6 +17,7 @@ IMAGE_ID="projects/${PROJECT}/global/images/${IMAGE_NAME}"
 mvn -q -f "${CROMWELL_REPO}/CromwellRefdiskManifestCreator/pom.xml" -DskipTests package
 JAR="$(find "${CROMWELL_REPO}/CromwellRefdiskManifestCreator/target" \
   -name '*-jar-with-dependencies.jar' -print -quit)"
+[[ -n "${JAR}" ]] || { echo "ERROR: manifest-creator jar not found under target/; did 'mvn package' succeed?" >&2; exit 1; }
 
 # Positional args: <nThreads> <imageIdentifier> <diskSizeGb> <scanDir> <manifestOut>
 java -jar "${JAR}" "${N_THREADS}" "${IMAGE_ID}" "${DISK_SIZE_GB}" \
