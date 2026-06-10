@@ -65,18 +65,27 @@ optimization, not in scope.)
 - `String max_template_date` — e.g. `"2022-01-01"`.
 - `String model_preset` — `monomer` | `monomer_ptm` | `monomer_casp14` | `multimer` (default `monomer`).
 - `String db_preset` — `full_dbs` | `reduced_dbs` (default `full_dbs`).
-- `Boolean run_relax` (default `true`), `Boolean use_gpu_relax` (default `true`).
+- `String models_to_relax` — `all` | `best` | `none` (default `best`); this is AlphaFold 2.3.x's
+  Amber-relaxation control (it replaced the older `--run_relax` boolean). `Boolean use_gpu_relax` (default `true`).
 - Database **anchor** `File` inputs (see "Reference-disk wiring" below), each defaulting to a real `gs://` path on the disk.
 - Runtime knobs: `String docker_image`, `String gpu_type` (default `nvidia-tesla-v100`),
   `Int gpu_count` (default 1), `Int cpu` (default 8), `Int memory_gb` (default 64),
-  `Int scratch_disk_gb`, optional `String predefined_machine_type` (for A100 via `a2-highgpu-1g`).
+  `Int scratch_disk_gb` (default 100).
+
+Note on A100: GCP Batch exposes A100 only via a GPU `predefinedMachineType` (`a2-highgpu-1g`),
+which WDL 1.0 cannot conditionally include in a `runtime` block without overriding cpu/memory/gpu.
+So v1 wires the GPU through `gpu_type`/`gpu_count` (v100/p100/p4/t4); using A100 requires editing
+the task's `runtime` block, documented in the README. (This is a deliberate narrowing from the
+earlier "optional `predefined_machine_type` input" idea.)
 
 ### Outputs
 
 - `Array[File] ranked_pdbs` — `ranked_*.pdb`.
+- `File best_model` — `ranked_0.pdb`, the top-ranked structure (relaxed when relaxation ran).
+  Works for both monomer and multimer regardless of `models_to_relax`, unlike a hard-coded
+  `relaxed_model_1.pdb` (whose name differs for multimer).
 - `File ranking_debug` — `ranking_debug.json`.
 - `File timings` — `timings.json`.
-- `File? best_relaxed` — best relaxed model PDB (present when `run_relax` is true).
 - `File output_tarball` — the full output directory, tarred, for completeness.
 
 ### Command logic
@@ -90,8 +99,8 @@ The task builds the `run_alphafold.py` flag list conditionally:
 
 Always emit `--uniref90_database_path`, `--mgnify_database_path`, `--template_mmcif_dir`,
 `--obsolete_pdbs_path`, `--data_dir`, `--max_template_date`, `--model_preset`, `--db_preset`,
-`--output_dir`, `--fasta_paths`, and `--use_gpu_relax=<bool>` (or `--norun_relax` when
-`run_relax` is false).
+`--output_dir`, `--fasta_paths`, `--models_to_relax=<all|best|none>`, and
+`--use_gpu_relax=<bool>`.
 
 ## Reference-disk wiring (chosen approach: "anchor file per database")
 
