@@ -11,9 +11,9 @@ PDB70_PREFIX="pdb70"
 
 # arg: a real BFD file (e.g. <dir>/<BFD_PREFIX>_hhm.ffindex)
 derive_bfd_db()       { printf '%s/%s\n' "$(dirname "$1")" "${BFD_PREFIX}"; }
-# arg: a real UniRef30 file
+# arg: a real UniRef30 file (e.g. <dir>/<UNIREF30_PREFIX>_hhm.ffindex)
 derive_uniref30_db()  { printf '%s/%s\n' "$(dirname "$1")" "${UNIREF30_PREFIX}"; }
-# arg: a real pdb70 file
+# arg: a real pdb70 file (e.g. <dir>/<PDB70_PREFIX>_hhm.ffindex)
 derive_pdb70_db()     { printf '%s/%s\n' "$(dirname "$1")" "${PDB70_PREFIX}"; }
 # arg: pdb_mmcif/obsolete.dat — template mmcif dir is its sibling
 derive_template_dir() { printf '%s/mmcif_files\n' "$(dirname "$1")"; }
