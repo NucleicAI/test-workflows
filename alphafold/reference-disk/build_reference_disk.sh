@@ -24,7 +24,7 @@ set -euo pipefail
 
 # --- Optional configuration (sensible defaults) -----------------------------
 : "${DISK_SIZE_GB:=3000}"             # data disk size and manifest diskSizeGb
-: "${DATA_DISK_TYPE:=pd-balanced}"
+: "${DATA_DISK_TYPE:=pd-standard}"
 : "${MACHINE_TYPE:=e2-standard-8}"
 : "${BOOT_DISK_SIZE_GB:=50}"
 : "${VM_NAME:=alphafold-build}"
@@ -113,15 +113,45 @@ for _ in $(seq 1 30); do
 done
 [[ "${ssh_ready}" == "1" ]] || { echo "ERROR: SSH not ready after retries" >&2; exit 1; }
 
-# --- Step 4: run the build on the VM, fetch the manifest --------------------
-log "Step 4/6: Run download + manifest build on the VM"
-"${GC[@]}" compute scp "${HERE}/vm_build.sh" "${VM_NAME}:~/vm_build.sh" --zone="${ZONE}"
-REMOTE_ENV="DATA_DEVICE='${DATA_DEVICE}' DOWNLOAD_ROOT='${DOWNLOAD_ROOT}'"
-REMOTE_ENV+=" BUCKET='${BUCKET}' PREFIX='${PREFIX}' IMAGE_ID='${IMAGE_ID}'"
-REMOTE_ENV+=" DISK_SIZE_GB='${DISK_SIZE_GB}' ALPHAFOLD_VERSION='${ALPHAFOLD_VERSION}'"
-REMOTE_ENV+=" N_THREADS='${N_THREADS}' MANIFEST_OUT=\$HOME/alphafold-refs-manifest.json"
-"${GC[@]}" compute ssh "${VM_NAME}" --zone="${ZONE}" \
-  --command="${REMOTE_ENV} bash \$HOME/vm_build.sh"
+# --- Step 4: run the build on the VM (detached), then fetch the manifest -----
+# The build runs DETACHED on the VM (setsid + logfile), so a dropped SSH
+# connection can't kill it. We poll for a success marker. Re-running this script
+# attaches to an in-flight build instead of starting a duplicate.
+log "Step 4/6: Run download + manifest build on the VM (detached)"
+
+# bracket-pattern so pgrep never matches the ssh wrapper running it
+remote_running()   { "${GC[@]}" compute ssh "${VM_NAME}" --zone="${ZONE}" \
+  --command='pgrep -f "/vm_buil[d].sh" >/dev/null'; }
+remote_succeeded() { "${GC[@]}" compute ssh "${VM_NAME}" --zone="${ZONE}" \
+  --command='test -f "$HOME/.vm_build_ok"'; }
+
+if remote_running; then
+  echo "A vm_build is already running on ${VM_NAME}; attaching to it."
+elif remote_succeeded; then
+  echo "A previous vm_build already completed on ${VM_NAME}; reusing its result."
+else
+  "${GC[@]}" compute scp "${HERE}/vm_build.sh" "${VM_NAME}:~/vm_build.sh" --zone="${ZONE}"
+  # No quotes needed around values (none contain spaces); avoids nested-quote
+  # trouble inside the remote `setsid env ... bash` invocation.
+  RENV="DATA_DEVICE=${DATA_DEVICE} DOWNLOAD_ROOT=${DOWNLOAD_ROOT} BUCKET=${BUCKET}"
+  RENV+=" PREFIX=${PREFIX} IMAGE_ID=${IMAGE_ID} DISK_SIZE_GB=${DISK_SIZE_GB}"
+  RENV+=" ALPHAFOLD_VERSION=${ALPHAFOLD_VERSION} N_THREADS=${N_THREADS}"
+  RENV+=" MANIFEST_OUT=\$HOME/alphafold-refs-manifest.json"
+  "${GC[@]}" compute ssh "${VM_NAME}" --zone="${ZONE}" --command="\
+rm -f \$HOME/.vm_build_ok; \
+setsid env ${RENV} bash \$HOME/vm_build.sh > \$HOME/vm_build.log 2>&1 < /dev/null & \
+echo 'launched detached vm_build'"
+fi
+
+log "Waiting for the VM build (polling every 2 min; Ctrl-C is safe — re-run to resume)"
+while remote_running; do
+  "${GC[@]}" compute ssh "${VM_NAME}" --zone="${ZONE}" \
+    --command='printf "%s  " "$(date +%H:%M)"; df -h /mnt/data | tail -1; tail -n 1 "$HOME/vm_build.log" 2>/dev/null' \
+    2>/dev/null || true
+  sleep 120
+done
+remote_succeeded || { echo "ERROR: vm_build is not running and left no success marker; check ~/vm_build.log on ${VM_NAME}" >&2; exit 1; }
+echo "VM build completed successfully."
 
 log "Fetch manifest to ${MANIFEST_OUT}"
 "${GC[@]}" compute scp "${VM_NAME}:~/alphafold-refs-manifest.json" "${MANIFEST_OUT}" --zone="${ZONE}"

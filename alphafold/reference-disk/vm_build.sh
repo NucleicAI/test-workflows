@@ -23,6 +23,9 @@ DOWNLOAD_MARKER="${DEST}/.download_complete"
 
 log() { printf '\n=== [vm] %s ===\n' "$*"; }
 
+# Clear any stale success marker so the orchestrator can poll for a fresh one.
+rm -f "${HOME}/.vm_build_ok"
+
 log "Mount data disk ${DATA_DEVICE} at ${DOWNLOAD_ROOT}"
 if ! sudo blkid "${DATA_DEVICE}" >/dev/null 2>&1; then
   echo "[vm] Formatting ${DATA_DEVICE} as ext4 (new disk)."
@@ -74,3 +77,8 @@ rm -f "${MANIFEST_OUT}"
 java -jar "${JAR}" "${N_THREADS}" "${IMAGE_ID}" "${DISK_SIZE_GB}" \
   "${DOWNLOAD_ROOT}" "${MANIFEST_OUT}"
 echo "[vm] Manifest written to ${MANIFEST_OUT} (imageIdentifier=${IMAGE_ID})."
+
+# Success sentinel — the orchestrator polls for this to know the build finished.
+# (Reached only if every step above succeeded, thanks to `set -e`.)
+touch "${HOME}/.vm_build_ok"
+echo "[vm] Done; wrote success marker ${HOME}/.vm_build_ok"
