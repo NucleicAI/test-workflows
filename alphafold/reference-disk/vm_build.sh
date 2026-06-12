@@ -68,14 +68,15 @@ else
   touch "${DOWNLOAD_MARKER}"
 fi
 
-log "Build reference-disk manifest"
-# Scan from DOWNLOAD_ROOT so manifest paths are <BUCKET>/<PREFIX>/... — matching
-# the workflow's gs:// inputs minus the leading 'gs://'. The tool refuses to
-# overwrite, so clear any prior manifest first.
-rm -f "${MANIFEST_OUT}"
-# Positional args: <nThreads> <imageIdentifier> <diskSizeGb> <scanDir> <manifestOut>
-java -jar "${JAR}" "${N_THREADS}" "${IMAGE_ID}" "${DISK_SIZE_GB}" \
-  "${DOWNLOAD_ROOT}" "${MANIFEST_OUT}"
+log "Build trimmed reference-disk manifest (anchors only)"
+# Only the files the WDL references as inputs ("anchors") need manifest entries;
+# the rest of the disk rides along on the mounted image and is reached by the
+# task via the real mount path. make_trimmed_manifest.sh (shipped next to this
+# script by the orchestrator) builds the small manifest.
+DOWNLOAD_ROOT="${DOWNLOAD_ROOT}" BUCKET="${BUCKET}" PREFIX="${PREFIX}" \
+  CROMWELL_REPO="${CROMWELL_REPO}" IMAGE_ID="${IMAGE_ID}" DISK_SIZE_GB="${DISK_SIZE_GB}" \
+  MANIFEST_OUT="${MANIFEST_OUT}" N_THREADS="${N_THREADS}" \
+  bash "${HOME}/make_trimmed_manifest.sh"
 echo "[vm] Manifest written to ${MANIFEST_OUT} (imageIdentifier=${IMAGE_ID})."
 
 # Success sentinel — the orchestrator polls for this to know the build finished.

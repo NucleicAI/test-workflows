@@ -30,9 +30,9 @@ permission to create Compute Engine resources in the project. Nothing else is
 installed locally; the databases and the Maven build happen on the VM.
 
 ```bash
-export PROJECT=my-gcp-project
+export PROJECT=nucleicai-ops
 export ZONE=us-central1-a
-export BUCKET=my-alphafold-refs
+export BUCKET=nucleicai-alphafold-refs
 export PREFIX=v2.3.2
 export IMAGE_NAME=alphafold-refs-20260611
 

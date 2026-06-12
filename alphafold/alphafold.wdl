@@ -117,12 +117,15 @@ task run_alphafold {
     esac
 
     # --- Derive on-disk database paths from anchor file locations ---
-    # Mirrors alphafold/tests/db_paths.lib.sh.
-    BFD_DB="$(dirname '~{bfd_anchor}')/~{bfd_prefix}"
-    UNIREF30_DB="$(dirname '~{uniref30_anchor}')/~{uniref30_prefix}"
-    PDB70_DB="$(dirname '~{pdb70_anchor}')/~{pdb70_prefix}"
-    TEMPLATE_MMCIF_DIR="$(dirname '~{obsolete_pdbs}')/mmcif_files"
-    DATA_DIR="$(dirname "$(dirname '~{params_anchor}')")"
+    # Reference-disk inputs are localized as symlinks into the execution dir
+    # (only the matched file, not its siblings), so resolve each anchor to its
+    # real path on the mounted image with `readlink -f` before taking dirname.
+    # Keep in sync with alphafold/tests/db_paths.lib.sh.
+    BFD_DB="$(dirname "$(readlink -f '~{bfd_anchor}')")/~{bfd_prefix}"
+    UNIREF30_DB="$(dirname "$(readlink -f '~{uniref30_anchor}')")/~{uniref30_prefix}"
+    PDB70_DB="$(dirname "$(readlink -f '~{pdb70_anchor}')")/~{pdb70_prefix}"
+    TEMPLATE_MMCIF_DIR="$(dirname "$(readlink -f '~{obsolete_pdbs}')")/mmcif_files"
+    DATA_DIR="$(dirname "$(dirname "$(readlink -f '~{params_anchor}')")")"
 
     OUTPUT_DIR="$(pwd)/output"
     mkdir -p "${OUTPUT_DIR}"

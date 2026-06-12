@@ -131,6 +131,7 @@ elif remote_succeeded; then
   echo "A previous vm_build already completed on ${VM_NAME}; reusing its result."
 else
   "${GC[@]}" compute scp "${HERE}/vm_build.sh" "${VM_NAME}:~/vm_build.sh" --zone="${ZONE}"
+  "${GC[@]}" compute scp "${HERE}/make_trimmed_manifest.sh" "${VM_NAME}:~/make_trimmed_manifest.sh" --zone="${ZONE}"
   # No quotes needed around values (none contain spaces); avoids nested-quote
   # trouble inside the remote `setsid env ... bash` invocation.
   RENV="DATA_DEVICE=${DATA_DEVICE} DOWNLOAD_ROOT=${DOWNLOAD_ROOT} BUCKET=${BUCKET}"
