@@ -9,17 +9,21 @@ workflow alphafold {
     String models_to_relax = "best"
     Boolean use_gpu_relax = true
 
-    # Reference-disk database anchors (gs:// paths matching the manifest).
-    File uniref90_database
-    File mgnify_database
-    File bfd_anchor
-    File uniref30_anchor
-    File small_bfd_database
-    File pdb70_anchor
-    File pdb_seqres_database
-    File uniprot_database
-    File obsolete_pdbs
-    File params_anchor
+    # Reference-disk database anchors. Defaulted from reference_root so the gs://
+    # paths (which must match the reference-disk manifest) live in one place;
+    # override reference_root for a different bucket/version, or override any
+    # single anchor directly.
+    String reference_root = "gs://nucleicai-alphafold-refs/v2.3.2"
+    File uniref90_database   = "~{reference_root}/uniref90/uniref90.fasta"
+    File mgnify_database     = "~{reference_root}/mgnify/mgy_clusters_2022_05.fa"
+    File bfd_anchor          = "~{reference_root}/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt_hhm.ffindex"
+    File uniref30_anchor     = "~{reference_root}/uniref30/UniRef30_2021_03_hhm.ffindex"
+    File small_bfd_database  = "~{reference_root}/small_bfd/bfd-first_non_consensus_sequences.fasta"
+    File pdb70_anchor        = "~{reference_root}/pdb70/pdb70_hhm.ffindex"
+    File pdb_seqres_database = "~{reference_root}/pdb_seqres/pdb_seqres.txt"
+    File uniprot_database    = "~{reference_root}/uniprot/uniprot.fasta"
+    File obsolete_pdbs       = "~{reference_root}/pdb_mmcif/obsolete.dat"
+    File params_anchor       = "~{reference_root}/params/params_model_1.npz"
 
     # Runtime knobs.
     String docker_image
