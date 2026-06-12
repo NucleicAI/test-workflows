@@ -47,6 +47,16 @@ log "Clone repositories"
 [[ -d "${CROMWELL_REPO}/.git" ]] \
   || git clone --depth 1 https://github.com/broadinstitute/cromwell "${CROMWELL_REPO}"
 
+# Route dead/flaky FTP download URLs to HTTPS in the upstream download scripts.
+# wwPDB retired ftp.wwpdb.org (NXDOMAIN), which otherwise aborts the build at
+# obsolete.dat / pdb_seqres; UniProt and EBI serve HTTPS on the same host+path.
+log "Patch FTP download URLs to HTTPS"
+afs="${ALPHAFOLD_REPO}/scripts"
+sed -i 's|ftp://ftp.wwpdb.org/pub/pdb/data/status/obsolete.dat|https://files.wwpdb.org/pub/pdb/data/status/obsolete.dat|g' "${afs}/download_pdb_mmcif.sh"
+sed -i 's|ftp://ftp.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt|https://files.wwpdb.org/pub/pdb/derived_data/pdb_seqres.txt|g' "${afs}/download_pdb_seqres.sh"
+sed -i 's|ftp://ftp.uniprot.org|https://ftp.uniprot.org|g' "${afs}/download_uniref90.sh"
+sed -i 's|ftp://ftp.ebi.ac.uk|https://ftp.ebi.ac.uk|g' "${afs}/download_uniprot.sh"
+
 # Build the manifest tool BEFORE the long download, so a JDK/Maven problem fails
 # in minutes rather than after hours of downloading.
 log "Build manifest tool"
