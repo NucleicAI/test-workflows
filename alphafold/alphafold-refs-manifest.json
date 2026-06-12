@@ -1,0 +1,35 @@
+{
+  "imageIdentifier" : "projects/nucleicai-ops/global/images/alphafold-refs-20260611",
+  "diskSizeGb" : 3000,
+  "files" : [ {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/pdb_mmcif/obsolete.dat",
+    "crc32c" : 3444847650
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/uniref30/UniRef30_2021_03_hhm.ffindex",
+    "crc32c" : 2587625956
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/bfd/bfd_metaclust_clu_complete_id30_c90_final_seq.sorted_opt_hhm.ffindex",
+    "crc32c" : 897853488
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/pdb_seqres/pdb_seqres.txt",
+    "crc32c" : 3687562736
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/params/params_model_1.npz",
+    "crc32c" : 519597199
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/small_bfd/bfd-first_non_consensus_sequences.fasta",
+    "crc32c" : 2310627178
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/uniref90/uniref90.fasta",
+    "crc32c" : 1796053801
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/pdb70/pdb70_hhm.ffindex",
+    "crc32c" : 3595072449
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/uniprot/uniprot.fasta",
+    "crc32c" : 460373539
+  }, {
+    "path" : "nucleicai-alphafold-refs/v2.3.2/mgnify/mgy_clusters_2022_05.fa",
+    "crc32c" : 2441247600
+  } ]
+}
