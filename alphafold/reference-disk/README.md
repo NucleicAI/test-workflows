@@ -54,13 +54,44 @@ When it finishes, wire the downloaded manifest into Cromwell — see
 `vm_build.sh` is the VM-side worker that `build_reference_disk.sh` ships and runs
 over SSH; you do not run it by hand.
 
-## No GCS mirror
+## No GCS mirror (but anchor stubs are required)
 
-The build does not copy the databases to GCS. The workflow's `gs://` inputs are
-only a string key matched against the manifest (no fetch), so the reference disk
-works without the objects existing. Leaving them non-existent is the safer
-default: a manifest **miss** then fails fast with "not found" rather than
-silently localizing terabytes — and you avoid paying for a second copy in GCS.
+The build does not copy the databases to GCS — at runtime each anchor is served
+from the mounted reference disk image, not fetched from the bucket, so there's no
+reason to pay for a second terabyte-scale copy.
+
+However, the anchor objects cannot be fully absent. When
+`reference-disk-localization-manifests` is configured, Cromwell **validates every
+manifest entry at startup** by doing a GCS `get` for each object and reading its
+crc32c (`GcpBatchReferenceFilesMappingOperations.bulkValidateCrc32cs`). A
+*missing* object makes the batch result `null` and Cromwell NPEs on boot:
+
+```
+Cannot invoke "...BlobInfo.getCrc32c()" because the return value of
+"...StorageBatchResult.get()" is null
+```
+
+(Note: a checksum *mismatch* is tolerated — the file is dropped from the mapping
+with a warning and then localized normally — but a missing object is not.)
+
+So each anchor needs a GCS object that exists with a crc32c matching the
+manifest. We satisfy that with `seed_anchor_stubs.py`, which uploads a 4-byte
+decoy per anchor whose crc32c is forged to equal the manifest value. The decoys
+are never read at runtime (validated files come from the disk image); they exist
+only so the boot-time validation finds an object and its checksum agrees.
+
+```bash
+# Prove the forge locally first (no GCS, no auth):
+python3 seed_anchor_stubs.py --dry-run
+
+# Then create the stubs (add --create-bucket if the bucket doesn't exist yet):
+python3 seed_anchor_stubs.py --project nucleicai-ops
+```
+
+The script self-tests its CRC32C, asserts each forged stub before upload, and
+reads the crc32c back from GCS after upload — so it can never silently publish a
+wrong checksum (which would drop the file from the mapping and make Cromwell try
+to localize the 4-byte decoy as if it were the real database).
 
 ## Rough cost (GCP list price, indicative)
 
