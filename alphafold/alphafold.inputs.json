@@ -7,8 +7,9 @@
   "alphafold.use_gpu_relax": true,
 
   "alphafold.docker_image": "us-docker.pkg.dev/<PROJECT>/<REPO>/alphafold:2.3.2",
-  "alphafold.gpu_type": "nvidia-tesla-v100",
+  "alphafold.gpu_type": "nvidia-tesla-t4",
   "alphafold.gpu_count": 1,
+  "alphafold.zones": "us-central1-a us-central1-b us-central1-c us-central1-f",
   "alphafold.cpu": 8,
   "alphafold.memory_gb": 64,
   "alphafold.scratch_disk_gb": 100,

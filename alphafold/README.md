@@ -44,23 +44,36 @@ full design.
 3. Outputs: `ranked_pdbs` (all ranked structures), `best_model` (`ranked_0.pdb`),
    `ranking_debug`, `timings`, and `output_tarball` (the full output directory).
 
-## GPUs and A100
+## GPUs, zones, and A100
 
-The workflow requests GPUs via `gpu_type`/`gpu_count`. GCP Batch's `gpuType`
-supports `nvidia-tesla-{v100,p100,p4,t4}`, all of which attach **only to N1**
-machine types. Cromwell's GCP Batch backend, however, picks the machine family
-from the `cpuPlatform` attribute alone — with none set it defaults to `n2`,
-which GPUs reject (`machine type n2-custom-… is not compatible with
-accelerators`). The `runtime` block therefore pins `cpuPlatform: "Intel
-Skylake"` to force an N1 custom type; `cpu`/`memory_gb` still apply (an
-8 vCPU / 64 GB request is emitted as `custom-10-65536` — Cromwell's bare
-`custom-` prefix denotes N1 — since N1 caps memory at 6.5 GB/vCPU and Cromwell
-bumps the CPU count from 8 to 10 to compensate).
+The workflow requests GPUs via `gpu_type`/`gpu_count` and defaults to
+`nvidia-tesla-t4` — the cheapest GPU that the stock AlphaFold 2.3.2 image
+(CUDA 11.1, `jaxlib 0.3.25+cuda11`) can drive. `nvidia-tesla-{v100,p100,p4}`
+also work; all four attach **only to N1** machine types.
+
+**`zones` must offer `gpu_type`.** The workflow defaults to
+`us-central1-{a,b,c,f}`, which offer both T4 and V100. If the VM lands in a zone
+without the requested GPU, GCE fails the job with
+`INVALID_FIELD_VALUE` at instance creation. In particular, **do not run in
+newer regions such as `us-south1`**: their only GPUs are Blackwell (G4/A4) and
+Hopper (A3 Ultra), which are not N1-attachable *and* are too new for the
+CUDA 11.1 image (they need CUDA 12.8+). Note Cromwell's backend default zone is
+unrelated to this `zones` value — set it here so the workflow is self-contained.
+
+**Why N1 is forced via `cpuPlatform`.** Cromwell's GCP Batch backend picks the
+machine family from the `cpuPlatform` attribute alone — with none set it
+defaults to `n2`, which these GPUs reject (`machine type n2-custom-… is not
+compatible with accelerators`). The `runtime` block therefore pins
+`cpuPlatform: "Intel Skylake"` to force an N1 custom type; `cpu`/`memory_gb`
+still apply (an 8 vCPU / 64 GB request is emitted as `custom-10-65536` —
+Cromwell's bare `custom-` prefix denotes N1 — since N1 caps memory at
+6.5 GB/vCPU and Cromwell bumps the CPU count from 8 to 10 to compensate).
 
 Large multimers may need an A100, which GCP Batch exposes only through a GPU
-`predefinedMachineType` (`a2-highgpu-1g`). WDL 1.0 cannot conditionally add that
-runtime key, so to use an A100 edit the `runtime` block of `run_alphafold` in
-`alphafold.wdl`: remove `gpuType`/`gpuCount`/`cpu`/`memory`/`cpuPlatform` and add
+`predefinedMachineType` (`a2-highgpu-1g`, in A100 zones such as
+`us-central1-{a,b,c,f}`). WDL 1.0 cannot conditionally add that runtime key, so
+to use an A100 edit the `runtime` block of `run_alphafold` in `alphafold.wdl`:
+remove `gpuType`/`gpuCount`/`cpu`/`memory`/`cpuPlatform` and add
 `predefinedMachineType: "a2-highgpu-1g"`.
 
 ## Validating changes

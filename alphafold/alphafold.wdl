@@ -27,8 +27,15 @@ workflow alphafold {
 
     # Runtime knobs.
     String docker_image
-    String gpu_type = "nvidia-tesla-v100"
+    # T4 is the cheapest GPU that runs the CUDA 11.1 AlphaFold 2.3.2 image; V100/
+    # P100/P4 also work (all attach to N1 — see cpuPlatform in the task runtime).
+    String gpu_type = "nvidia-tesla-t4"
     Int gpu_count = 1
+    # Compute zones. MUST offer gpu_type or GCE rejects the VM with
+    # INVALID_FIELD_VALUE. us-central1-{a,b,c,f} offer both T4 and V100. Avoid
+    # newer regions such as us-south1, whose only GPUs are Blackwell/Hopper:
+    # too new for the CUDA 11.1 image and not attachable to N1 machine types.
+    String zones = "us-central1-a us-central1-b us-central1-c us-central1-f"
     Int cpu = 8
     Int memory_gb = 64
     Int scratch_disk_gb = 100
@@ -55,6 +62,7 @@ workflow alphafold {
       docker_image = docker_image,
       gpu_type = gpu_type,
       gpu_count = gpu_count,
+      zones = zones,
       cpu = cpu,
       memory_gb = memory_gb,
       scratch_disk_gb = scratch_disk_gb
@@ -92,6 +100,7 @@ task run_alphafold {
     String docker_image
     String gpu_type
     Int gpu_count
+    String zones
     Int cpu
     Int memory_gb
     Int scratch_disk_gb
@@ -190,12 +199,14 @@ task run_alphafold {
     gpu: true
     gpuType: gpu_type
     gpuCount: gpu_count
-    # V100/P100/P4/T4 attach only to N1 machine types. Cromwell's GCP Batch
+    zones: zones
+    # T4/V100/P100/P4 attach only to N1 machine types. Cromwell's GCP Batch
     # backend derives the machine family from cpuPlatform alone (defaulting to
     # n2, which these GPUs reject) and never inspects the GPU; an older-Intel
     # platform forces n1. Skylake is the newest N1-era platform and is offered
-    # in the V100 zones. (For an A100 instead, drop this and gpuType/gpuCount/
-    # cpu/memory per the README and set predefinedMachineType: "a2-highgpu-1g".)
+    # in the us-central1 T4/V100 zones. (For an A100 instead, drop this and
+    # gpuType/gpuCount/cpu/memory per the README and set
+    # predefinedMachineType: "a2-highgpu-1g".)
     cpuPlatform: "Intel Skylake"
     # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
