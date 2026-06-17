@@ -6,9 +6,12 @@
 # snapshots the data disk into a GCE image, and — once the image is READY —
 # deletes the VM and data disk (keeping only the image).
 #
-# It does NOT mirror the databases to GCS (the gs:// inputs are only a match key;
-# see this directory's README). On any failure it leaves the VM and disk in place
-# for debugging.
+# It does NOT mirror the databases to GCS. At runtime the anchors are served from
+# the mounted disk image, not fetched from the bucket. But Cromwell validates each
+# manifest anchor's crc32c against GCS at startup, so the anchor OBJECTS must still
+# exist — seed tiny forged-crc32c stubs afterward with seed_anchor_stubs.py (see
+# this directory's README). On any failure it leaves the VM and disk in place for
+# debugging.
 #
 # Run locally with: an authenticated gcloud (`gcloud auth login`), permission to
 # create Compute Engine resources in ${PROJECT}, and the sibling vm_build.sh
@@ -186,6 +189,8 @@ log "Done"
 echo "Image:    ${IMAGE_ID}"
 echo "Manifest: ${MANIFEST_OUT}"
 echo "Next:"
+echo "  - Seed anchor stubs so Cromwell's startup validation passes:"
+echo "      python3 ${HERE}/seed_anchor_stubs.py --project ${PROJECT}"
 echo "  - Wire the manifest into Cromwell (see ${HERE}/../backend-config-snippet.conf)."
 echo "  - To share across projects, grant each consuming project's Batch service"
 echo "    account roles/compute.imageUser on the image."

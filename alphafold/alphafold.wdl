@@ -106,7 +106,7 @@ task run_alphafold {
   command <<<
     set -euo pipefail
 
-    # --- Validate enum inputs up front (fail before mounting the reference disk) ---
+    # --- Validate enum inputs up front (fail fast before the expensive AlphaFold run) ---
     case "~{model_preset}" in
       monomer|monomer_ptm|monomer_casp14|multimer) ;;
       *) echo "ERROR: invalid model_preset '~{model_preset}' (expected monomer|monomer_ptm|monomer_casp14|multimer)" >&2; exit 1 ;;
@@ -193,6 +193,5 @@ task run_alphafold {
     # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
     bootDiskSizeGb: 50
-    zones: "us-central1-a us-central1-b us-central1-c us-central1-f"
   }
 }
