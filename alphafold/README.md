@@ -47,11 +47,21 @@ full design.
 ## GPUs and A100
 
 The workflow requests GPUs via `gpu_type`/`gpu_count`. GCP Batch's `gpuType`
-supports `nvidia-tesla-{v100,p100,p4,t4}`. Large multimers may need an A100,
-which GCP Batch exposes only through a GPU `predefinedMachineType`
-(`a2-highgpu-1g`). WDL 1.0 cannot conditionally add that runtime key, so to use
-an A100 edit the `runtime` block of `run_alphafold` in `alphafold.wdl`: remove
-`gpuType`/`gpuCount`/`cpu`/`memory` and add `predefinedMachineType: "a2-highgpu-1g"`.
+supports `nvidia-tesla-{v100,p100,p4,t4}`, all of which attach **only to N1**
+machine types. Cromwell's GCP Batch backend, however, picks the machine family
+from the `cpuPlatform` attribute alone — with none set it defaults to `n2`,
+which GPUs reject (`machine type n2-custom-… is not compatible with
+accelerators`). The `runtime` block therefore pins `cpuPlatform: "Intel
+Skylake"` to force an N1 custom type; `cpu`/`memory_gb` still apply (an
+8 vCPU / 64 GB request is emitted as `custom-10-65536` — Cromwell's bare
+`custom-` prefix denotes N1 — since N1 caps memory at 6.5 GB/vCPU and Cromwell
+bumps the CPU count from 8 to 10 to compensate).
+
+Large multimers may need an A100, which GCP Batch exposes only through a GPU
+`predefinedMachineType` (`a2-highgpu-1g`). WDL 1.0 cannot conditionally add that
+runtime key, so to use an A100 edit the `runtime` block of `run_alphafold` in
+`alphafold.wdl`: remove `gpuType`/`gpuCount`/`cpu`/`memory`/`cpuPlatform` and add
+`predefinedMachineType: "a2-highgpu-1g"`.
 
 ## Validating changes
 

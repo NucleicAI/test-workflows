@@ -190,6 +190,13 @@ task run_alphafold {
     gpu: true
     gpuType: gpu_type
     gpuCount: gpu_count
+    # V100/P100/P4/T4 attach only to N1 machine types. Cromwell's GCP Batch
+    # backend derives the machine family from cpuPlatform alone (defaulting to
+    # n2, which these GPUs reject) and never inspects the GPU; an older-Intel
+    # platform forces n1. Skylake is the newest N1-era platform and is offered
+    # in the V100 zones. (For an A100 instead, drop this and gpuType/gpuCount/
+    # cpu/memory per the README and set predefinedMachineType: "a2-highgpu-1g".)
+    cpuPlatform: "Intel Skylake"
     # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
     bootDiskSizeGb: 50
