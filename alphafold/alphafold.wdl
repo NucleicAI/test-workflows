@@ -32,10 +32,11 @@ workflow alphafold {
     String gpu_type = "nvidia-tesla-t4"
     Int gpu_count = 1
     # Compute zones. MUST offer gpu_type or GCE rejects the VM with
-    # INVALID_FIELD_VALUE. us-central1-{a,b,c,f} offer both T4 and V100. Avoid
-    # newer regions such as us-south1, whose only GPUs are Blackwell/Hopper:
-    # too new for the CUDA 11.1 image and not attachable to N1 machine types.
-    String zones = "us-central1-a us-central1-b us-central1-c us-central1-f"
+    # INVALID_FIELD_VALUE. us-west1-{a,b} offer T4/V100/P100 (us-west1-c does
+    # not); us-central1-{a,b,c,f} are an alternative with the widest GPU
+    # selection. Avoid newer regions such as us-south1, whose only GPUs are
+    # Blackwell/Hopper: too new for the CUDA 11.1 image and not N1-attachable.
+    String zones = "us-west1-a us-west1-b"
     Int cpu = 8
     Int memory_gb = 64
     Int scratch_disk_gb = 100
@@ -204,7 +205,7 @@ task run_alphafold {
     # backend derives the machine family from cpuPlatform alone (defaulting to
     # n2, which these GPUs reject) and never inspects the GPU; an older-Intel
     # platform forces n1. Skylake is the newest N1-era platform and is offered
-    # in the us-central1 T4/V100 zones. (For an A100 instead, drop this and
+    # in the T4/V100 zones configured above. (For an A100 instead, drop this and
     # gpuType/gpuCount/cpu/memory per the README and set
     # predefinedMachineType: "a2-highgpu-1g".)
     cpuPlatform: "Intel Skylake"

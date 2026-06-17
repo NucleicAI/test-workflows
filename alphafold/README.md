@@ -51,10 +51,12 @@ The workflow requests GPUs via `gpu_type`/`gpu_count` and defaults to
 (CUDA 11.1, `jaxlib 0.3.25+cuda11`) can drive. `nvidia-tesla-{v100,p100,p4}`
 also work; all four attach **only to N1** machine types.
 
-**`zones` must offer `gpu_type`.** The workflow defaults to
-`us-central1-{a,b,c,f}`, which offer both T4 and V100. If the VM lands in a zone
+**`zones` must offer `gpu_type`.** The workflow defaults to `us-west1-{a,b}`,
+which offer T4 and V100 (`us-west1-c` does not); `us-central1-{a,b,c,f}` is an
+alternative with the widest GPU selection. If the VM lands in a zone
 without the requested GPU, GCE fails the job with
-`INVALID_FIELD_VALUE` at instance creation. In particular, **do not run in
+`INVALID_FIELD_VALUE` at instance creation. If a region is capacity-exhausted
+for the GPU, switch `zones` to another from the list above. In particular, **do not run in
 newer regions such as `us-south1`**: their only GPUs are Blackwell (G4/A4) and
 Hopper (A3 Ultra), which are not N1-attachable *and* are too new for the
 CUDA 11.1 image (they need CUDA 12.8+). Note Cromwell's backend default zone is
