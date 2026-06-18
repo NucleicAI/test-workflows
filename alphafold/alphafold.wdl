@@ -7,7 +7,9 @@ workflow alphafold {
     String model_preset = "monomer"
     String db_preset = "full_dbs"
     String models_to_relax = "best"
-    Boolean use_gpu_relax = true
+    # No GPU is requested (this workflow runs CPU-only); the Amber relaxation
+    # step must therefore stay on CPU. Set true only if you re-enable GPU mode.
+    Boolean use_gpu_relax = false
 
     # Reference-disk database anchors. Defaulted from reference_root so the gs://
     # paths (which must match the reference-disk manifest) live in one place;
@@ -27,16 +29,13 @@ workflow alphafold {
 
     # Runtime knobs.
     String docker_image
-    # T4 is the cheapest GPU that runs the CUDA 11.1 AlphaFold 2.3.2 image; V100/
-    # P100/P4 also work (all attach to N1 — see cpuPlatform in the task runtime).
+    # GPU settings — DORMANT: this workflow runs CPU-only by default and never
+    # requests a GPU. They take effect only if you restore the GPU lines in the
+    # task runtime block. T4/V100/P100/P4 all attach to N1; in GPU mode the
+    # caller must also place the job in a zone that offers gpu_type (via the
+    # backend's default-runtime-attributes or a re-added `zones` attribute).
     String gpu_type = "nvidia-tesla-t4"
     Int gpu_count = 1
-    # Compute zones. MUST offer gpu_type or GCE rejects the VM with
-    # INVALID_FIELD_VALUE. us-west1-{a,b} offer T4/V100/P100 (us-west1-c does
-    # not); us-central1-{a,b,c,f} are an alternative with the widest GPU
-    # selection. Avoid newer regions such as us-south1, whose only GPUs are
-    # Blackwell/Hopper: too new for the CUDA 11.1 image and not N1-attachable.
-    String zones = "us-west1-a us-west1-b"
     Int cpu = 8
     Int memory_gb = 64
     Int scratch_disk_gb = 100
@@ -63,7 +62,6 @@ workflow alphafold {
       docker_image = docker_image,
       gpu_type = gpu_type,
       gpu_count = gpu_count,
-      zones = zones,
       cpu = cpu,
       memory_gb = memory_gb,
       scratch_disk_gb = scratch_disk_gb
@@ -101,7 +99,6 @@ task run_alphafold {
     String docker_image
     String gpu_type
     Int gpu_count
-    String zones
     Int cpu
     Int memory_gb
     Int scratch_disk_gb
@@ -197,21 +194,18 @@ task run_alphafold {
     docker: docker_image
     cpu: cpu
     memory: "~{memory_gb} GB"
-    gpu: true
-    gpuType: gpu_type
-    gpuCount: gpu_count
-    zones: zones
-    # T4/V100/P100/P4 attach only to N1 machine types. Cromwell's GCP Batch
-    # backend derives the machine family from cpuPlatform alone (defaulting to
-    # n2, which these GPUs reject) and never inspects the GPU; an older-Intel
-    # platform forces n1. minCpuPlatform is a floor (">= this platform"), so the
-    # oldest platform GPU hosts actually use gives the widest eligible pool and
-    # the best odds against ZONE_RESOURCE_POOL_EXHAUSTED. Broadwell is that floor:
-    # T4/V100/P100/P4 hosts are Broadwell-or-newer, and nothing older carries
-    # these GPUs (so Haswell/Ivy/Sandy Bridge add no hosts and may be rejected).
-    # (For an A100 instead, drop this and gpuType/gpuCount/cpu/memory per the
-    # README and set predefinedMachineType: "a2-highgpu-1g".)
-    cpuPlatform: "Intel Broadwell"
+    # CPU-only: no GPU is requested, so this sidesteps GPU quota/capacity limits
+    # entirely. AlphaFold's genetic search (jackhmmer/hhblits) is CPU-bound; only
+    # model inference loses GPU acceleration (slower, but it completes). With no
+    # GPU and no cpuPlatform, Cromwell's Batch backend builds an n2-custom VM;
+    # placement (zone/region) is left to the caller — i.e. the backend's
+    # default-runtime-attributes — since this task sets no `zones`.
+    # To run on GPU instead, set use_gpu_relax=true, place the job in a zone that
+    # offers gpu_type (add a `zones` attribute or set it in the backend), and add:
+    #   gpu: true
+    #   gpuType: gpu_type
+    #   gpuCount: gpu_count
+    #   cpuPlatform: "Intel Broadwell"   # forces the N1 family T4/V100/P100/P4 need
     # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
     bootDiskSizeGb: 50
