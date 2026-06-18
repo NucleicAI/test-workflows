@@ -66,10 +66,14 @@ unrelated to this `zones` value — set it here so the workflow is self-containe
 machine family from the `cpuPlatform` attribute alone — with none set it
 defaults to `n2`, which these GPUs reject (`machine type n2-custom-… is not
 compatible with accelerators`). The `runtime` block therefore pins
-`cpuPlatform: "Intel Skylake"` to force an N1 custom type; `cpu`/`memory_gb`
+`cpuPlatform: "Intel Broadwell"` to force an N1 custom type; `cpu`/`memory_gb`
 still apply (an 8 vCPU / 64 GB request is emitted as `custom-10-65536` —
 Cromwell's bare `custom-` prefix denotes N1 — since N1 caps memory at
 6.5 GB/vCPU and Cromwell bumps the CPU count from 8 to 10 to compensate).
+Broadwell (not a newer floor like Skylake) is deliberate: `minCpuPlatform` is a
+floor, so the oldest platform the GPU hosts use maximizes the eligible host
+pool and reduces `ZONE_RESOURCE_POOL_EXHAUSTED`. T4/V100/P100/P4 hosts are all
+Broadwell-or-newer, so going older adds no capacity and may be rejected.
 
 Large multimers may need an A100, which GCP Batch exposes only through a GPU
 `predefinedMachineType` (`a2-highgpu-1g`, in A100 zones such as

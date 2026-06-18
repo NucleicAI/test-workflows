@@ -204,11 +204,14 @@ task run_alphafold {
     # T4/V100/P100/P4 attach only to N1 machine types. Cromwell's GCP Batch
     # backend derives the machine family from cpuPlatform alone (defaulting to
     # n2, which these GPUs reject) and never inspects the GPU; an older-Intel
-    # platform forces n1. Skylake is the newest N1-era platform and is offered
-    # in the T4/V100 zones configured above. (For an A100 instead, drop this and
-    # gpuType/gpuCount/cpu/memory per the README and set
-    # predefinedMachineType: "a2-highgpu-1g".)
-    cpuPlatform: "Intel Skylake"
+    # platform forces n1. minCpuPlatform is a floor (">= this platform"), so the
+    # oldest platform GPU hosts actually use gives the widest eligible pool and
+    # the best odds against ZONE_RESOURCE_POOL_EXHAUSTED. Broadwell is that floor:
+    # T4/V100/P100/P4 hosts are Broadwell-or-newer, and nothing older carries
+    # these GPUs (so Haswell/Ivy/Sandy Bridge add no hosts and may be rejected).
+    # (For an A100 instead, drop this and gpuType/gpuCount/cpu/memory per the
+    # README and set predefinedMachineType: "a2-highgpu-1g".)
+    cpuPlatform: "Intel Broadwell"
     # Execution scratch only; the genetic databases live on the reference disk.
     disks: "local-disk ~{scratch_disk_gb} SSD"
     bootDiskSizeGb: 50
