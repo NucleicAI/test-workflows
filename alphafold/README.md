@@ -44,39 +44,34 @@ full design.
 3. Outputs: `ranked_pdbs` (all ranked structures), `best_model` (`ranked_0.pdb`),
    `ranking_debug`, `timings`, and `output_tarball` (the full output directory).
 
-## Compute: CPU-only (default) and GPU mode
+## Compute: GPU (default) and CPU-only
 
-**This workflow runs CPU-only by default** (no GPU is requested, and
-`use_gpu_relax=false`). AlphaFold's genetic search (jackhmmer/hhblits) is
-CPU-bound regardless; only the model-inference and relaxation steps lose GPU
-acceleration, so a CPU run is slower but completes — and it sidesteps GPU quota
-and capacity limits entirely. For a tolerable runtime, use `db_preset=reduced_dbs`
-and a short sequence, and consider raising `cpu`. With no GPU and no
-`cpuPlatform`, Cromwell's Batch backend builds an `n2-custom` VM. The task sets
-no `zones`, so placement (zone/region) is left to the caller — the backend's
-`default-runtime-attributes`.
+**This workflow runs on GPU by default**, requesting GPUs via
+`gpu_type`/`gpu_count` and defaulting to **`nvidia-tesla-p4` in `us-central1-a`** —
+P4 (sm_61) runs the stock AlphaFold 2.3.2 image (CUDA 11.1, `jaxlib 0.3.25+cuda11`)
+and, at time of writing, is one of the few GPU types with available capacity.
+`nvidia-tesla-{v100,p100,t4}` also work; all attach **only to N1** machine types.
+NB: P4 has only 8 GB VRAM and can OOM on long sequences — use V100 (or A100,
+below) for those. Launching any GPU also requires non-zero `GPUS_ALL_REGIONS`
+(and per-type) quota in the project.
 
-### Enabling GPU mode
+**`zones` must offer `gpu_type`, and a Batch job is single-region.** The workflow
+defaults to `us-central1-a` (confirmed P4 capacity). If the VM lands in a zone
+without the requested GPU, GCE fails with `INVALID_FIELD_VALUE` at instance
+creation; if a zone is capacity-exhausted (`ZONE_RESOURCE_POOL_EXHAUSTED`), switch
+`zones` (e.g. `us-east4-c`, also P4-capable). **Do not target newer regions such
+as `us-south1`**: their only GPUs are Blackwell (G4/A4) and Hopper (A3 Ultra),
+which are not N1-attachable *and* too new for the CUDA 11.1 image (need CUDA 12.8+).
 
-To run on GPU, set `use_gpu_relax=true` and restore the GPU lines in the
-`run_alphafold` `runtime` block (`gpu`, `gpuType`, `gpuCount`, `cpuPlatform`),
-as noted in `alphafold.wdl`. In GPU mode the workflow requests GPUs via
-`gpu_type`/`gpu_count`, defaulting to `nvidia-tesla-t4` — the cheapest GPU the
-stock AlphaFold 2.3.2 image (CUDA 11.1, `jaxlib 0.3.25+cuda11`) can drive.
-`nvidia-tesla-{v100,p100,p4}` also work; all four attach **only to N1** machine
-types. Note: launching any GPU also requires non-zero `GPUS_ALL_REGIONS` (and
-per-type) quota in the project.
+### Running CPU-only instead
 
-**GPU placement must target a zone that offers `gpu_type`.** The workflow no
-longer sets `zones` — placement is left to the caller. For GPU mode, add a
-`zones` attribute to the task runtime (or set it in the backend's
-`default-runtime-attributes`) listing zones that offer `gpu_type`, e.g.
-`us-west1-{a,b}` (T4/V100) or `us-central1-{a,b,c,f}` (widest selection). If the
-VM lands in a zone without the requested GPU, GCE fails with `INVALID_FIELD_VALUE`
-at instance creation; if a zone is capacity-exhausted, switch to another. **Do
-not target newer regions such as `us-south1`**: their only GPUs are Blackwell
-(G4/A4) and Hopper (A3 Ultra), which are not N1-attachable *and* are too new for
-the CUDA 11.1 image (they need CUDA 12.8+).
+To avoid GPU quota/capacity entirely, set `use_gpu_relax=false` and remove the GPU
+lines from the `run_alphafold` `runtime` block (`gpu`, `gpuType`, `gpuCount`,
+`cpuPlatform`); `zones` then becomes optional. Cromwell builds an `n2-custom` VM
+and the run completes on CPU — slower (the genetic search is CPU-bound either way;
+only model inference/relaxation lose GPU acceleration). Use `db_preset=reduced_dbs`
+and a short sequence for a tolerable CPU runtime. (A CPU smoke run has succeeded
+end-to-end: ~2h, pLDDT ≈ 95.)
 
 **Why N1 is forced via `cpuPlatform`.** Cromwell's GCP Batch backend picks the
 machine family from the `cpuPlatform` attribute alone — with none set it
