@@ -3,7 +3,7 @@
 A WDL workflow that runs AlphaFold 2 with its genetic databases served from a
 Cromwell reference disk instead of being localized per run.
 
-See `../docs/superpowers/specs/2026-06-10-alphafold-cromwell-design.md` for the
+See [`platform-docs/specs/2026-06-10-alphafold-cromwell-design.md`](https://github.com/NucleicAI/platform-docs/blob/main/specs/2026-06-10-alphafold-cromwell-design.md) for the
 full design.
 
 ## Files
